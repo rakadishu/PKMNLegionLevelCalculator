@@ -69,7 +69,7 @@ var levelCalculator = (function () {
 
     function addRowClicked() {
         var targetRowNum = levelCalculator.dataHolder.expList.length;
-        var newRow = createElement("div", "expRow", "expRow" + targetRowNum, []);
+        var newRow = createElement("span", "expRow ownRow", "expRow" + targetRowNum, []);
 
         var linkInput = createElement("input", "linkInput", "linkInput" + targetRowNum, [
             {
@@ -150,20 +150,34 @@ var levelCalculator = (function () {
             while (levelCalculator.containerDiv.firstChild) {
                 levelCalculator.containerDiv.removeChild(levelCalculator.containerDiv.firstChild);
             }
-            levelCalculator.dataHolder = {
-                currentLevel: 1,
-                expTotal: 0,
-                levelExp: 0,
-                remainderExp: 0,
-                expList: [],
-                defaultExp: 0,
-                levelUpTracker: [
-                    {
-                        complete: false,
-                        levelProgress: 0,
-                        exp: []
+            var isForPets = levelCalculator.dataHolder.forPet;
+
+            levelCalculator.dataHolder =
+                this.dataHolder = {
+                    forPet: isForPets,
+                    currentLevel: 1,
+                    expTotal: 0,
+                    levelExp: 0,
+                    remainderExp: 0,
+                    expList: [
+                        {
+                            link: "",
+                            title: "Given Exp",
+                            expValue: 0,
+                            active: true,
+                            counted: false
+                    }
+                ],
+                    calculatedDefaultExp: 0,
+                    defaultExp: 0,
+                    levelUpTracker: [
+                        {
+                            complete: false,
+                            levelProgress: 0,
+                            exp: []
                             }]
-            };
+                };
+            calculateUpdate();
         }
     }
 
@@ -178,7 +192,7 @@ var levelCalculator = (function () {
 
     function calculateUpdate() {
         calculateTotals(levelCalculator.dataHolder);
-        if(levelCalculator.dataHolder.expTotal > maxExpTotal){
+        if (levelCalculator.dataHolder.expTotal > maxExpTotal) {
             alert("Be aware, there's more exp here than you need to be at level 100! To be level 100, you need " + maxExpTotal + " exp. You currently have a total of " + levelCalculator.dataHolder.expTotal + " exp. That means you have " + (levelCalculator.dataHolder.expTotal - maxExpTotal) + " exp left over!");
         }
         levelCalculator.updateDisplay();
@@ -209,6 +223,10 @@ var levelCalculator = (function () {
                 levelIncrement = workingLevel * 100;
             }
 
+            if (dataObject.forPet) {
+                levelIncrement = Math.floor(levelIncrement / 2);
+            }
+
             if ((exp - levelIncrement) >= 0) {
                 exp -= levelIncrement;
                 levelExp += levelIncrement;
@@ -230,12 +248,19 @@ var levelCalculator = (function () {
 
     function calculateExpFromLevel(level) {
         var workingTotal = 0;
+        var isForPets = levelCalculator.dataHolder.forPet;
+        var addedAmount;
         while (level > 1) {
             console.log(level);
             if (level > 10) {
-                workingTotal += 1000;
+                addedAmount = (isForPets ? 500 : 1000);
+                workingTotal += addedAmount;
             } else {
-                workingTotal += (level - 1) * 100;
+                addedAmount = (level - 1) * 100;
+                if (isForPets) {
+                    addedAmount = Math.floor(addedAmount / 2);
+                }
+                workingTotal += addedAmount;
             }
             console.log(workingTotal);
             level--;
@@ -250,7 +275,7 @@ var levelCalculator = (function () {
         var dataObject = levelCalculator.dataHolder;
         var levelProgress = 0;
         var totalExp = 0;
-        
+
         var i = 1;
 
         if (dataObject.defaultExp > 0) {
@@ -268,6 +293,10 @@ var levelCalculator = (function () {
                         levelIncrement = 1000;
                     } else {
                         levelIncrement = workingLevel * 100;
+                    }
+
+                    if (dataObject.forPet) {
+                        levelIncrement = Math.floor(levelIncrement / 2);
                     }
 
                     if (levelProgress + currentItemValue <= levelIncrement) {
@@ -325,7 +354,8 @@ var levelCalculator = (function () {
     function formatExportText() {
         var exportText = "<b>Exp Progress</b><br/>";
         var levelTracker = levelCalculator.dataHolder.levelUpTracker;
-        for (var i = 0; i < levelTracker.length; i++) {
+        var counter = (levelCalculator.dataHolder.forPet ? 4 : 0);
+        for (var i = counter; i < levelTracker.length; i++) {
             exportText += "<br/><b>Level " + (i + 1) + "</b><br/>"
             for (var j = 0; j < levelTracker[i].exp.length; j++) {
                 var targetItem = levelTracker[i].exp[j];
@@ -355,6 +385,7 @@ var levelCalculator = (function () {
         setup: function () {
             setup();
             this.dataHolder = {
+                forPet: false,
                 currentLevel: 1,
                 expTotal: 0,
                 levelExp: 0,
@@ -368,6 +399,7 @@ var levelCalculator = (function () {
                         counted: false
                     }
                 ],
+                calculatedDefaultExp: 0,
                 defaultExp: 0,
                 levelUpTracker: [
                     {
@@ -377,45 +409,27 @@ var levelCalculator = (function () {
                             }]
             };
             this.updateDisplay();
-            //            var dataHolderExample = {
-            //                currentLevel: 1,
-            //                expTotal: 0,
-            //                remainderExp: 0,
-            //                expList: [
-            //                    {
-            //                        link: "fav/somethingsomething",
-            //                        title: "optional",
-            //                        expValue: 1337,
-            //                        active: true,
-            //                        counted: true
-            //                    }, {
-            //                        link: "fav/somethingsomething",
-            //                        title: "optional",
-            //                        expValue: 1337,
-            //                        active: true
-            //                        counted: true
-            //                    }, {
-            //                        link: "fav/somethingsomething",
-            //                        title: "optional",
-            //                        expValue: 1337,
-            //                        active: false
-            //                        counted: false
-            //                    }
-            //                ]
         },
         updateDisplay: function () {
             this.levelDisplay.value = this.dataHolder.currentLevel;
             this.expProgressDisplay.value = this.dataHolder.remainderExp;
             var expMax = document.getElementById("progressMax");
             if (this.dataHolder.currentLevel < 10) {
-                expMax.innerHTML = (this.dataHolder.currentLevel * 100);
+
+                expMax.innerHTML = (this.dataHolder.forPet ? this.dataHolder.currentLevel * 50 : this.dataHolder.currentLevel * 100);
             } else {
-                expMax.innerHTML = 1000;
+                expMax.innerHTML = (this.dataHolder.forPet ? 500 : 1000);
             }
         },
         setLevel: function (totalLevel) {
-            this.dataHolder.currentLevel = totalLevel;
-            this.updateSetExp();
+            if (this.dataHolder.forPet && totalLevel < 5) {
+                alert("Can't do that, Pets start at level 5!");
+                this.updateDisplay();
+            } else {
+                this.dataHolder.currentLevel = totalLevel;
+                this.dataHolder.remainderExp = 0;
+                this.updateSetExp();
+            }
         },
         setlevelExp: function (givenExp) {
             this.dataHolder.remainderExp = givenExp;
@@ -423,9 +437,8 @@ var levelCalculator = (function () {
         },
         updateSetExp: function () {
             this.dataHolder.defaultExp = 0;
-            
-            var levelExp = calculateExpFromLevel(this.dataHolder.currentLevel);
-            this.dataHolder.levelExp = levelExp;
+
+            this.dataHolder.levelExp = calculateExpFromLevel(this.dataHolder.currentLevel);
             this.dataHolder.defaultExp = this.dataHolder.levelExp + this.dataHolder.remainderExp;
             this.dataHolder.expList[0].expValue = this.dataHolder.defaultExp;
         },
@@ -453,6 +466,13 @@ var levelCalculator = (function () {
         deleteRowClicked: function (target) {
             deleteRowClicked(target);
         },
+        petExpClicked: function (target) {
+            //togglePetExp(target.checked);
+            levelCalculator.dataHolder.forPet = target.checked;
+            levelCalculator.setLevel(levelCalculator.dataHolder.forPet? 5 : 1);
+            levelCalculator.updateSetExp();
+            levelCalculator.calculateClicked();
+        },
         linkChanged: function (target) {
             var targetNum = target.id.replace("linkInput", "");
             levelCalculator.dataHolder.expList[targetNum].link = target.value;
@@ -464,15 +484,13 @@ var levelCalculator = (function () {
         expChanged: function (target) {
             var targetNum = target.id.replace("expInput", "");
             var expValue = parseInt(target.value);
-            
-            if(expValue < maxExpTotal + 10000) {
+
+            if (expValue < maxExpTotal + 10000) {
                 levelCalculator.dataHolder.expList[targetNum].expValue = expValue;
-            }else{
+            } else {
                 alert("Woah, you can't add something with that much exp, it might just break! How'd you even get that much exp, anyways?")
                 target.value = 0;
             }
-            
-            
         }
     }
 })();

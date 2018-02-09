@@ -14,3 +14,9 @@ div.supremeOverlay {
 div.deadOverlay {
     display: none;
 }
+
+span.ownRow {
+    display: block;
+    width: 100%;
+    text-align: center;
+}
